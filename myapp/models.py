@@ -1,8 +1,7 @@
+import factory
 from django.utils import timezone
 from django.db import models
 from django.contrib.auth.models import User
-
-# Create your models here.
 
 
 class Merchant(models.Model):
@@ -10,14 +9,16 @@ class Merchant(models.Model):
 
 
 class Product(models.Model):
-    name = models.CharField(max_length=200, blank=False, unique=True)
-    # name is mandatory and must be unique
+    name = models.CharField(max_length=200, blank=False, unique=False)
+    # name is mandatory
 
 
 class Listing(models.Model):
-    product = models.ForeignKey(Product, blank=True, null=True, default=None, on_delete=models.CASCADE)
+    product = models.ForeignKey(
+        Product, blank=True, null=True, default=None, on_delete=models.CASCADE
+    )
     title = models.CharField(max_length=200, blank=False)
-    #title is mandatory
+    # title is mandatory
     description = models.CharField(max_length=200, blank=True)
     price = models.DecimalField(max_digits=8, decimal_places=2, blank=False)
     # price is mandatory
@@ -32,6 +33,3 @@ class Order(models.Model):
 class Orderline(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE)
     listing = models.ForeignKey(Listing, on_delete=models.CASCADE)
-
-
-
