@@ -7,7 +7,3 @@ class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = ["id", "name"]
-
-
-class ProductNameSerializer(serializers.Serializer):
-    name = serializers.CharField()

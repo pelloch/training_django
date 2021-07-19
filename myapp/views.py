@@ -5,7 +5,7 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 
 from myapp.models import Product
-from myapp.serializers import ProductSerializer, ProductNameSerializer
+from myapp.serializers import ProductSerializer
 
 
 # Create your views here.
@@ -18,21 +18,25 @@ class ProductViewSet(viewsets.ModelViewSet):
     serializer_class = ProductSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
-    def update(self, request, *args, **kwargs):
+
+# Finally, no need to create this update method as it's handled automatically by ModelViewSet
+
+"""
+    f update(self, request, *args, **kwargs):
         # Get existing product
         product_pk = self.kwargs["pk"]
         product = get_object_or_404(Product.objects, pk=product_pk)
 
         # Parse input (after serializing it)
-        serializer = ProductNameSerializer(data=request.data)
+        serializer = ProductSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         name_to_update = serializer.data["name"]
 
         # Modify product name with the serializer data
-        product.name = name_to_update  # need to serialize request here to get the name
+        product.name = name_to_update
         product.save()
 
         return Response(data=ProductSerializer(product).data)
+"""
 
-
-# need to define functions to create and update product (copy paste badoom)
+# need to define functions to create  product

@@ -1,10 +1,12 @@
+import json
+
 from django.contrib.auth.models import User
 from django.test import TestCase
+from django.test.client import encode_multipart
 from django.urls import reverse
 from rest_framework import status
 
 from myapp.models import Product, Merchant
-from myapp.serializers import ProductSerializer
 
 
 class ProductViewSetTestCase(TestCase):
@@ -22,8 +24,10 @@ class ProductViewSetTestCase(TestCase):
         cls.merchant = Merchant.objects.create(user=cls.user)
         cls.merchant.save()
 
-        # Data for product creation
-        cls.data = {"name": "Product to create"}
+        # Data for product creation and update - need to be encoded to be handled with PUT and POST functions
+        cls.data = {"name": "updated or created Product name"}
+        cls.encoded_data = json.dumps(cls.data)
+        cls.content_type = "application/json"
 
         # GET The URL to get the product pk=1
         cls.url_get = reverse("product", kwargs={"pk": cls.product.pk})
@@ -57,38 +61,43 @@ class ProductViewSetTestCase(TestCase):
 
     def test_view_cannot_update_product_if_not_authenticated(self):
         # ARRANGE
-        data = {"name": "new iPhone!!!"}
 
         # ACT
-        request = self.client.put(self.url_put, data=data)
+        request = self.client.put(
+            self.url_put, data=self.encoded_data, content_type=self.content_type
+        )
 
         # ASSERT
         self.assertEqual(request.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_view_raises_404_if_update_a_non_existing_product(self):
         # ARRANGE
-        data = {"name": "new iPhone!!!"}
         self.client.force_login(user=self.merchant.user)
         url_with_a_non_existing_product = reverse("product", kwargs={"pk": 5000})
 
         # ACT
-        request = self.client.put(url_with_a_non_existing_product, data=data)
+        request = self.client.put(
+            url_with_a_non_existing_product,
+            data=self.encoded_data,
+            content_type=self.content_type,
+        )
 
         # ASSERT
-        self.assertEqual(request.status_code, 404)
+        self.assertEqual(request.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_view_update_correctly_product(self):
         # ARRANGE
-        data = {"name": "new updated iPhone X for Pelloch"}
         self.client.force_login(user=self.merchant.user)
-        expected_result = {"id": 1, "name": "new iPhone!!!"}
+        expected_result = {"id": 1, "name": "updated or created Product name"}
 
         # ACT
-        update_request = self.client.put(self.url_put, data=data, format="json")
+        response = self.client.put(
+            self.url_put, data=self.encoded_data, content_type=self.content_type
+        )
 
         # ASSERT
-        self.assertEqual(update_request.status_code, status.HTTP_200_OK)
-        self.assertEqual(update_request.data, expected_result)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, expected_result)
 
     def test_view_cannot_create_product_if_not_authenticated(self):
         # ARRANGE
@@ -97,12 +106,20 @@ class ProductViewSetTestCase(TestCase):
         request = self.client.post(self.url_post, self.data)
 
         # ASSERT
-        self.assertEqual(request.status_code, 403)
+        self.assertEqual(request.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_view_create_correctly_product(self):
         # ARRANGE
+        self.client.force_login(user=self.merchant.user)
+        expected_name = "updated or created Product name"
 
         # ACT
+        response = self.client.post(
+            self.url_post, data=self.encoded_data, content_type=self.content_type
+        )
+        # response=post_request
+        # created_product_pk = Product.objects.get(name="updated or created Product name").pk
 
         # ASSERT
-        pass
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["name"], expected_name)
