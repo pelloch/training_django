@@ -2,11 +2,10 @@ import json
 
 from django.contrib.auth.models import User
 from django.test import TestCase
-from django.test.client import encode_multipart
 from django.urls import reverse
 from rest_framework import status
 
-from myapp.models import Product, Merchant
+from myapp.models import Product, Merchant, Listing
 
 
 class ProductViewSetTestCase(TestCase):
@@ -17,14 +16,14 @@ class ProductViewSetTestCase(TestCase):
         cls.product = Product(pk=1, name="iPhone X de Pelloch")
         cls.product.save()
 
-        # Create the merchant Pelloch
+        # Create the Merchant Pelloch
         cls.user = User(username="Pelloch", password="fake-password")
         cls.user.save()
 
         cls.merchant = Merchant.objects.create(user=cls.user)
         cls.merchant.save()
 
-        # Data for product creation and update - need to be encoded to be handled with PUT and POST functions
+        # Data for product creation and update - need to be 'JSONed' to be handled with PUT and POST functions
         cls.data = {"name": "updated or created Product name"}
         cls.encoded_data = json.dumps(cls.data)
         cls.content_type = "application/json"
@@ -38,7 +37,7 @@ class ProductViewSetTestCase(TestCase):
         # POST The URL to create a product with pk=13
         cls.url_post = reverse("product", kwargs={"pk": 13})
 
-    def test_view_should_return_404_if_no_product_created(self):
+    def test_view_get_should_return_404_if_product_not_created(self):
         # ARRANGE
         url_get_non_created_product = reverse("product", kwargs={"pk": 100})
 
@@ -48,7 +47,7 @@ class ProductViewSetTestCase(TestCase):
         # ASSERT
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
-    def test_view_return_the_correct_object(self):
+    def test_view_get_returns_the_correct_object(self):
         # ARRANGE
         expected_result = {"id": 1, "name": "iPhone X de Pelloch"}
 
@@ -123,3 +122,70 @@ class ProductViewSetTestCase(TestCase):
         # ASSERT
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data["name"], expected_name)
+
+
+class ListingViewSetTestCase(TestCase):
+    @classmethod
+    def SetUpClass(cls):
+        super().setUpClass()
+        # Create the first listing pk = 9 for product pk = 1
+        cls.product = Product(pk=1, name="iPhone X de Pelloch")
+        cls.product.save()
+        cls.listing = Listing(
+            pk=9,
+            # product=1, # need to understand how to link with the right product
+            title="Title name",
+            description="Description text",
+            price=990.00,
+            quantity=120,
+        )
+        cls.listing.save()
+
+        # Create the Merchant Pelloch
+        cls.user = User(username="Pelloch", password="fake-password")
+        cls.user.save()
+
+        cls.merchant = Merchant.objects.create(user=cls.user)
+        cls.merchant.save()
+
+        # URLs setup
+        cls.url_get = reverse("listing", kwargs={"pk": cls.listing.pk})
+
+        # Data for listing creation and update on product_id #1 - need to be 'JSONed' to be handled with PUT and POST functions
+        cls.data = {
+            "product_id": 1,
+            "title": "iPhone X 64Gb - unlocked",
+            "description": "Smartphone unlocked with all operators from Apple with 64Gb of storage capacity",
+            "price": 350.00,
+            "quantity": 12,
+        }
+        cls.encoded_data = json.dumps(cls.data)
+        cls.content_type = "application/json"
+
+    def test_view_get_should_return_404_if_listing_not_created(self):
+        # ARRANGE
+        url_get_non_existing_listing = reverse("listing", kwargs={"pk": 100})
+
+        # ACT
+        response = self.client.get(url_get_non_existing_listing)
+
+        # ASSERT
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_view_get_returns_the_correct_object(self):
+        # ARRANGE
+        expected_result = {
+            "id": 9,
+            "product_id": 1,
+            "title": "Title name",
+            "description": "Description text",
+            "price": 990.00,
+            "quantity": 120,
+        }
+
+        # ACT
+        response = self.client.get(self.url_get)
+
+        # ASSERT
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, expected_result)
