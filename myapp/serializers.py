@@ -9,5 +9,5 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = ["id", "name"]
 
 
-class ProductNameSerializer(serializers.ModelSerializer):
+class ProductNameSerializer(serializers.Serializer):
     name = serializers.CharField()
