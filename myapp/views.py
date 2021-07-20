@@ -42,8 +42,6 @@ class ProductViewSet(viewsets.ModelViewSet):
 
 class ListingViewSet(viewsets.ModelViewSet):
     queryset = Listing.objects.all()
-    # serializer_class = ListingSerializer
-    # permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    serializer_class = ListingSerializer
+    permission_classes = [permissions.IsAuthenticated]
     # Listing can have null product_id. Create an endpoint PUT that allows attaching a product to a listing. Return 400 if listing already has a product
-
-    pass

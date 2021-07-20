@@ -14,7 +14,12 @@ class Product(models.Model):
 
 class Listing(models.Model):
     product = models.ForeignKey(
-        Product, blank=True, null=True, default=None, on_delete=models.CASCADE
+        Product,
+        blank=True,
+        null=True,
+        default=None,
+        related_name="listings",
+        on_delete=models.CASCADE,
     )
     title = models.CharField(max_length=200, blank=False)
     # title is mandatory
