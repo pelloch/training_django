@@ -119,6 +119,33 @@ class ProductViewSetTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data["name"], expected_name)
 
+    def test_view_deleting_a_product_deletes_all_associated_listings(self):
+        # ARRANGE
+        self.client.force_login(user=self.merchant.user)
+        # Create a product and 2 associated listings
+        product_to_delete = Product(pk=2, name="product to delete")
+        product_to_delete.save()
+        Listing(
+            pk=1, product=product_to_delete, title="listing to delete", price=12
+        ).save()
+        Listing(
+            pk=2, product=product_to_delete, title="listing to delete", price=25
+        ).save()
+
+        url_delete = reverse("single-product", kwargs={"pk": product_to_delete.pk})
+        url_listing_1 = reverse("single-listing", kwargs={"pk": 1})
+        url_listing_2 = reverse("single-listing", kwargs={"pk": 2})
+
+        # ACT
+        delete_response = self.client.delete(url_delete)
+        get_listing_1 = self.client.get(url_listing_1)
+        get_listing_2 = self.client.get(url_listing_2)
+
+        # ASSERT
+        self.assertEqual(delete_response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(get_listing_1.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(get_listing_2.status_code, status.HTTP_404_NOT_FOUND)
+
 
 class ListingViewSetTestCase(TestCase):
     @classmethod

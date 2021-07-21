@@ -12,7 +12,9 @@ urlpatterns = [
     ),
     path(
         "product/<int:pk>",
-        ProductViewSet.as_view({"get": "retrieve", "put": "update"}),
+        ProductViewSet.as_view(
+            {"get": "retrieve", "put": "update", "delete": "destroy"}
+        ),
         name="single-product",
     ),
     path(
