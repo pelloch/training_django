@@ -34,6 +34,6 @@ class Order(models.Model):
     creation_date = models.DateTimeField("date creation", default=timezone.now)
 
 
-class Orderline(models.Model):
+class OrderLine(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE)
     listing = models.ForeignKey(Listing, on_delete=models.CASCADE)

@@ -137,6 +137,7 @@ class ListingViewSetTestCase(TestCase):
             quantity=120,
         )
         cls.listing.save()
+
         cls.listing_with_no_product = Listing(
             pk=12,
             product=None,
@@ -156,12 +157,13 @@ class ListingViewSetTestCase(TestCase):
         # URLs setup
         cls.url = reverse("single-listing", kwargs={"pk": cls.listing.pk})
         cls.url_create = reverse("listing")
-        cls.url_attach = reverse("attach-product", kwargs={"pk": cls.listing.pk})
+        cls.url_attach = reverse(
+            "attach-product", kwargs={"pk": cls.listing_with_no_product.pk}
+        )
 
         # Data for listing creation and update on product_id #1
         # Need to be 'JSONed' to be handled with PUT and POST functions
         cls.data = {
-            # "product": 1,
             "title": "iPhone X 64Gb - unlocked",
             "description": "Smartphone unlocked with all operators from Apple with 64Gb of storage capacity",
             "price": 350.00,
@@ -237,13 +239,27 @@ class ListingViewSetTestCase(TestCase):
         # ASSERT
         self.assertEqual(request.status_code, status.HTTP_404_NOT_FOUND)
 
-    def test_view_cannot_update_product(self):
+    def test_view_raises_400_when_trying_update_a_product_on_a_listing_with_a_product(
+        self,
+    ):
         # ARRANGE
+        self.client.force_login(user=self.merchant.user)
+        Product(pk=2, name="product 2").save()
+        data = {
+            "product": 2,  # updating to None shouldn't work, we expect no value at all here
+            "title": "iPhone X 64Gb - unlocked",
+            "price": 350.00,
+        }
+        encoded_data = json.dumps(data)
+        content_type = "application/json"
 
         # ACT
+        response = self.client.put(
+            self.url, data=encoded_data, content_type=content_type
+        )
 
         # ASSERT
-        pass
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_view_update_correctly_listing(self):
         # ARRANGE
@@ -264,6 +280,32 @@ class ListingViewSetTestCase(TestCase):
 
         # ASSERT
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, expected_result)
+
+    def test_view_attach_product_to_listing(self):
+        # ARRANGE
+        self.client.force_login(user=self.merchant.user)
+        Product(pk=2, name="product 2").save()
+        data = {"product": 2}
+        encoded_data = json.dumps(data)
+        content_type = "application/json"
+
+        expected_result = {
+            "id": 12,
+            "product": 2,
+            "title": "Title name",
+            "description": "Description text",
+            "price": "190.90",
+            "quantity": 3,
+        }
+
+        # ACT
+        response = self.client.put(
+            self.url_attach, data=encoded_data, content_type=content_type
+        )
+
+        # ASSERT
+        # self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data, expected_result)
 
     def test_view_cannot_create_listing_if_not_authenticated(self):

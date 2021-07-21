@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from myapp.models import Product, Listing, Order, Orderline
+from myapp.models import Product, Listing
 
 
 class ProductSerializer(serializers.ModelSerializer):
@@ -26,5 +26,5 @@ class ListingSerializer(serializers.ModelSerializer):
         fields = ["id", "product", "title", "description", "price", "quantity"]
 
 
-class AttachProductSerializer(serializers.ModelSerializer):
-    pass
+class AttachProductSerializer(serializers.Serializer):
+    product = serializers.IntegerField()
