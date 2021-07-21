@@ -1,8 +1,6 @@
 from django.http import HttpResponse
 from rest_framework import permissions
 from rest_framework import viewsets
-from rest_framework.generics import get_object_or_404
-from rest_framework.response import Response
 
 from myapp.models import Product, Listing
 from myapp.serializers import ProductSerializer, ListingSerializer
@@ -17,7 +15,10 @@ class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-    # Create an endpoint (via an override of the "delete" method - to be declared in the url section) that allows deleting a product and all associated listings (there is a database configuration that allows the cascade)
+    # Create an endpoint (via an override of the "delete" method - to be declared in the url section)
+    # that allows deleting a product and all associated listings
+    # (there is a database configuration that allows the cascade)
+    # Maybe, we just need to test the delete function and ensure that cascade is working
 
 
 """
@@ -44,4 +45,10 @@ class ListingViewSet(viewsets.ModelViewSet):
     queryset = Listing.objects.all()
     serializer_class = ListingSerializer
     permission_classes = [permissions.IsAuthenticated]
-    # Listing can have null product_id. Create an endpoint PUT that allows attaching a product to a listing. Return 400 if listing already has a product
+    # Listing can have null product_id.
+    # Create an endpoint PUT that allows attaching a product to a listing.
+    # Return 400 if listing already has a product
+    # just need to override the method PUT here?
+
+    def attach_product(self):
+        pass

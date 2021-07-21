@@ -30,14 +30,14 @@ class ProductViewSetTestCase(TestCase):
         cls.content_type = "application/json"
 
         # GET or PUT - The URL to get or PUT the product pk=1
-        cls.url = reverse("product", kwargs={"pk": cls.product.pk})
+        cls.url = reverse("single-product", kwargs={"pk": cls.product.pk})
 
         # POST - The URL to create a product with pk=13
-        cls.url_post = reverse("product", kwargs={"pk": 0})
+        cls.url_post = reverse("product")
 
     def test_view_get_should_return_404_if_product_not_created(self):
         # ARRANGE
-        url_non_created_product = reverse("product", kwargs={"pk": 100})
+        url_non_created_product = reverse("single-product", kwargs={"pk": 100})
 
         # ACT
         response = self.client.get(url_non_created_product)
@@ -70,7 +70,7 @@ class ProductViewSetTestCase(TestCase):
     def test_view_raises_404_if_update_a_non_existing_product(self):
         # ARRANGE
         self.client.force_login(user=self.merchant.user)
-        url_with_a_non_existing_product = reverse("product", kwargs={"pk": 5000})
+        url_with_a_non_existing_product = reverse("single-product", kwargs={"pk": 5000})
 
         # ACT
         request = self.client.put(
@@ -130,13 +130,22 @@ class ListingViewSetTestCase(TestCase):
         cls.product.save()
         cls.listing = Listing(
             pk=9,
-            product_id=1,  # need to understand how to link with the right product
+            product=cls.product,
             title="Title name",
             description="Description text",
             price=990.00,
             quantity=120,
         )
         cls.listing.save()
+        cls.listing_with_no_product = Listing(
+            pk=12,
+            product=None,
+            title="Title name",
+            description="Description text",
+            price=190.90,
+            quantity=3,
+        )
+        cls.listing_with_no_product.save()
 
         # Create the Merchant Pelloch
         cls.user = User(username="Pelloch", password="fake-password")
@@ -145,15 +154,14 @@ class ListingViewSetTestCase(TestCase):
         cls.merchant.save()
 
         # URLs setup
-        cls.url = reverse("listing", kwargs={"pk": cls.listing.pk})
-        cls.url_create = reverse(
-            "listing", kwargs={"pk": 0}
-        )  # pk is mandatory for the reverse method but it won't be used
+        cls.url = reverse("single-listing", kwargs={"pk": cls.listing.pk})
+        cls.url_create = reverse("listing")
+        cls.url_attach = reverse("attach-product", kwargs={"pk": cls.listing.pk})
 
         # Data for listing creation and update on product_id #1
         # Need to be 'JSONed' to be handled with PUT and POST functions
         cls.data = {
-            "product_id": 1,
+            # "product": 1,
             "title": "iPhone X 64Gb - unlocked",
             "description": "Smartphone unlocked with all operators from Apple with 64Gb of storage capacity",
             "price": 350.00,
@@ -173,7 +181,7 @@ class ListingViewSetTestCase(TestCase):
 
     def test_view_get_should_return_404_if_listing_not_created(self):
         # ARRANGE
-        url_get_non_existing_listing = reverse("listing", kwargs={"pk": 100})
+        url_get_non_existing_listing = reverse("single-listing", kwargs={"pk": 100})
         self.client.force_login(user=self.merchant.user)
 
         # ACT
@@ -186,7 +194,7 @@ class ListingViewSetTestCase(TestCase):
         # ARRANGE
         expected_result = {
             "id": 9,
-            "product_id": 1,
+            "product": 1,
             "title": "Title name",
             "description": "Description text",
             "price": "990.00",
@@ -217,7 +225,7 @@ class ListingViewSetTestCase(TestCase):
     def test_view_raises_404_if_update_a_non_existing_listing(self):
         # ARRANGE
         self.client.force_login(user=self.merchant.user)
-        url_with_a_non_existing_listing = reverse("listing", kwargs={"pk": 5000})
+        url_with_a_non_existing_listing = reverse("single-listing", kwargs={"pk": 5000})
 
         # ACT
         request = self.client.put(
@@ -229,12 +237,20 @@ class ListingViewSetTestCase(TestCase):
         # ASSERT
         self.assertEqual(request.status_code, status.HTTP_404_NOT_FOUND)
 
+    def test_view_cannot_update_product(self):
+        # ARRANGE
+
+        # ACT
+
+        # ASSERT
+        pass
+
     def test_view_update_correctly_listing(self):
         # ARRANGE
         self.client.force_login(user=self.merchant.user)
         expected_result = {
             "id": 9,
-            "product_id": 1,
+            "product": 1,
             "title": "iPhone X 64Gb - unlocked",
             "description": "Smartphone unlocked with all operators from Apple with 64Gb of storage capacity",
             "price": "350.00",
@@ -267,7 +283,7 @@ class ListingViewSetTestCase(TestCase):
         # ARRANGE
         self.client.force_login(user=self.merchant.user)
         expected_result = {
-            "product_id": 1,  # with None it works, don't understand why
+            "product": None,
             "title": "iPhone X 64Gb - unlocked",
             "description": "Smartphone unlocked with all operators from Apple with 64Gb of storage capacity",
             "price": "350.00",
@@ -278,8 +294,6 @@ class ListingViewSetTestCase(TestCase):
         response = self.client.post(
             self.url_create, data=self.encoded_data, content_type=self.content_type
         )
-        # response=post_request
-        # created_product_pk = Product.objects.get(name="updated or created Product name").pk
 
         # ASSERT
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
