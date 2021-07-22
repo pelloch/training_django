@@ -78,8 +78,8 @@ class OrderAPIView(ListCreateAPIView):
 
     def get_queryset(self):
         """
-        This view should return a list of all the purchases
-        for the currently authenticated user.
+        This view should return a list of all the orders
+        for the currently authenticated merchant.
         """
         merchant = get_object_or_404(Merchant.objects, user=self.request.user)
         return Order.objects.filter(merchant=merchant)
