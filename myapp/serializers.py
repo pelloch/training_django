@@ -1,6 +1,9 @@
+from ddtrace.compat import is_integer
 from rest_framework import serializers
+from django.utils import timezone
 
-from myapp.models import Product, Listing
+
+from myapp.models import Product, Listing, Order, OrderLine
 
 
 class ProductSerializer(serializers.ModelSerializer):
@@ -28,3 +31,33 @@ class ListingSerializer(serializers.ModelSerializer):
 
 class AttachProductSerializer(serializers.Serializer):
     product = serializers.IntegerField()
+
+
+class OrderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = ["id", "merchant", "creation_date"]
+
+
+class OrderLineSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OrderLine
+        fields = ["id", "order", "listing", "quantity"]
+
+
+class OrderPushSerializer(serializers.Serializer):
+    listings = serializers.ListField(child=serializers.IntegerField())
+    quantities = serializers.ListField(child=serializers.IntegerField())
+    creation_date = serializers.DateTimeField(default=timezone.now())
+
+    def to_internal_value(self, data):
+        # Convert single integer to list of 1 element
+        if is_integer(data["listings"]):
+            data["listings"] = [data["listings"]]
+            data["quantities"] = [data["quantities"]]
+            return data
+
+        # Convert comma separated digits to list of integers
+        data["listings"] = data["listings"].split(",") if data["listings"] else []
+        data["quantities"] = data["quantities"].split(",") if data["quantities"] else []
+        return data

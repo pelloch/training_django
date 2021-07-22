@@ -30,10 +30,13 @@ class Listing(models.Model):
 
 
 class Order(models.Model):
-    merchant = models.ForeignKey(Merchant, on_delete=models.CASCADE)
-    creation_date = models.DateTimeField("date creation", default=timezone.now)
+    merchant = models.ForeignKey(Merchant, blank=False, on_delete=models.CASCADE)
+    creation_date = models.DateTimeField("creation_date", default=timezone.now)
 
 
 class OrderLine(models.Model):
-    order = models.ForeignKey(Order, on_delete=models.CASCADE)
+    order = models.ForeignKey(
+        Order, blank=False, related_name="orders", on_delete=models.CASCADE
+    )
     listing = models.ForeignKey(Listing, on_delete=models.CASCADE)
+    quantity = models.IntegerField(blank=False)

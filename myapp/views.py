@@ -1,50 +1,28 @@
 from django.http import HttpResponse
 from rest_framework import permissions, status
 from rest_framework import viewsets
-from rest_framework.generics import get_object_or_404
+from rest_framework.generics import get_object_or_404, ListCreateAPIView
 from rest_framework.response import Response
 
-from myapp.models import Product, Listing
+from myapp.models import Product, Listing, Order, Merchant, OrderLine
 from myapp.serializers import (
     ProductSerializer,
     ListingSerializer,
     AttachProductSerializer,
+    OrderSerializer,
+    OrderPushSerializer,
 )
 
 
 # Create your views here.
 def index(request):
-    return HttpResponse("Hello, friend. You're at the MyApp index.")
+    return HttpResponse("Hello, my friend. You're at the MyApp index.")
 
 
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-    # Create an endpoint (via an override of the "delete" method - to be declared in the url section)
-    # that allows deleting a product and all associated listings
-    # (there is a database configuration that allows the cascade)
-    # Maybe, we just need to test the delete function and ensure that cascade is working
-
-
-"""
-# Finally, no need to create this update method as it's handled automatically by ModelViewSet
-    def update(self, request, *args, **kwargs):
-        # Get existing product
-        product_pk = self.kwargs["pk"]
-        product = get_object_or_404(Product.objects, pk=product_pk)
-
-        # Parse input (after serializing it)
-        serializer = ProductSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        name_to_update = serializer.data["name"]
-
-        # Modify product name with the serializer data
-        product.name = name_to_update
-        product.save()
-
-        return Response(data=ProductSerializer(product).data)
-"""
 
 
 class ListingViewSet(viewsets.ModelViewSet):
@@ -90,3 +68,46 @@ class ListingViewSet(viewsets.ModelViewSet):
         setattr(listing, "product", product)
 
         return Response(data=ListingSerializer(listing).data)
+
+
+class OrderAPIView(ListCreateAPIView):
+    # Bonus : define a Get to see the list of orders of the authenticated merchant
+    # Define a POST method to create an order with at least one orderline on existing listing
+    serializer_class = OrderSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        """
+        This view should return a list of all the purchases
+        for the currently authenticated user.
+        """
+        merchant = get_object_or_404(Merchant.objects, user=self.request.user)
+        return Order.objects.filter(merchant=merchant)
+
+    def create(self, request, *args, **kwargs):
+        # Serialize the request.data
+        serializer = OrderPushSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        # Create the Order
+        order = Order.objects.create(
+            merchant=get_object_or_404(Merchant.objects, user=self.request.user),
+            creation_date=serializer.data["creation_date"],
+        )
+
+        for ix, pk in enumerate(serializer.data["listings"]):
+            # Check that every listings exist and that quantities are sufficient
+            listing = get_object_or_404(Listing.objects, pk=pk)
+            quantity = serializer.data["quantities"][ix]
+            if quantity > listing.quantity:
+                return Response(status=status.HTTP_417_EXPECTATION_FAILED)
+
+            # Then create the associated OrderLines
+            OrderLine.objects.create(order=order, listing=listing, quantity=quantity)
+
+            # Then decrement the quantity on the listing
+            new_quantity = listing.quantity - quantity
+            setattr(listing, "quantity", new_quantity)
+            listing.save()
+
+        return Response(data=OrderSerializer(order).data)
