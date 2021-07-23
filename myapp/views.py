@@ -1,5 +1,5 @@
 from django.http import HttpResponse
-from rest_framework import permissions, status
+from rest_framework import permissions, status, authentication
 from rest_framework import viewsets
 from rest_framework.generics import get_object_or_404, ListCreateAPIView
 from rest_framework.response import Response
@@ -22,6 +22,7 @@ def index(request):
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
+    authentication_classes = [authentication.TokenAuthentication]
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
 

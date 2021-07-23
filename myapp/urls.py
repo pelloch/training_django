@@ -1,4 +1,6 @@
 from django.urls import path
+from rest_framework.authtoken.views import obtain_auth_token
+
 from myapp import views
 
 from myapp.views import ProductViewSet, ListingViewSet, OrderAPIView
@@ -37,4 +39,5 @@ urlpatterns = [
         OrderAPIView.as_view(),
         name="orders",
     ),
+    path("api-token-auth/", obtain_auth_token, name="api_token_auth"),
 ]

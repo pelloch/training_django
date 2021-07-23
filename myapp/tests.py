@@ -1,9 +1,11 @@
 import json
 from collections import OrderedDict
-from datetime import datetime
 
-from django.utils import timezone
 from django.contrib.auth.models import User
+from rest_framework.test import force_authenticate
+from rest_framework.authtoken.models import Token
+
+
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
@@ -25,10 +27,15 @@ class ProductViewSetTestCase(TestCase):
         cls.user.save()
         cls.merchant = Merchant.objects.create(user=cls.user)
         cls.merchant.save()
+        # Fetch Token from this merchant
+        cls.token = Token(user=cls.user)
+        cls.token.save()
 
         # Data for product creation and update
+        cls.data = {
+            "name": "updated or created Product name",
+        }
         # Need to be 'JSONed' to be handled with PUT and POST functions
-        cls.data = {"name": "updated or created Product name"}
         cls.encoded_data = json.dumps(cls.data)
         cls.content_type = "application/json"
 
@@ -68,11 +75,11 @@ class ProductViewSetTestCase(TestCase):
         )
 
         # ASSERT
-        self.assertEqual(request.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(request.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_view_raises_404_if_update_a_non_existing_product(self):
         # ARRANGE
-        self.client.force_login(user=self.merchant.user)
+        # self.client.force_authentificate(user=self.merchant.user)
         url_with_a_non_existing_product = reverse("single-product", kwargs={"pk": 5000})
 
         # ACT
@@ -81,9 +88,12 @@ class ProductViewSetTestCase(TestCase):
             data=self.encoded_data,
             content_type=self.content_type,
         )
+        force_authenticate(request=request, user=self.merchant.user, token=self.token)
+        view = AccountDetail.as_view()
+        response = view(request)
 
         # ASSERT
-        self.assertEqual(request.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_view_update_correctly_product(self):
         # ARRANGE
@@ -106,7 +116,7 @@ class ProductViewSetTestCase(TestCase):
         request = self.client.post(self.url_post, self.data)
 
         # ASSERT
-        self.assertEqual(request.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(request.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_view_create_correctly_product(self):
         # ARRANGE
@@ -209,7 +219,7 @@ class ListingViewSetTestCase(TestCase):
         response = self.client.get(self.url)
 
         # ASSERT
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_view_get_should_return_404_if_listing_not_created(self):
         # ARRANGE
@@ -252,7 +262,7 @@ class ListingViewSetTestCase(TestCase):
         )
 
         # ASSERT
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_view_raises_404_if_update_a_non_existing_listing(self):
         # ARRANGE
@@ -349,7 +359,7 @@ class ListingViewSetTestCase(TestCase):
         )
 
         # ASSERT
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_view_create_correctly_listing(self):
         # ARRANGE
@@ -427,7 +437,7 @@ class OrderAPIViewTestCase(TestCase):
         response = self.client.post(self.url)
 
         # ASSERT
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_view_cannot_create_order_if_listing_doesnt_exist(self):
         # ARRANGE
@@ -505,7 +515,7 @@ class OrderAPIViewTestCase(TestCase):
         response = self.client.get(self.url)
 
         # ASSERT
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_view_get_returns_the_correct_object(self):
         # ARRANGE
