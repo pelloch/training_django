@@ -79,30 +79,28 @@ class ProductViewSetTestCase(TestCase):
 
     def test_view_raises_404_if_update_a_non_existing_product(self):
         # ARRANGE
-        # self.client.force_authentificate(user=self.merchant.user)
+        header = {"HTTP_AUTHORIZATION": "Token {}".format(self.token.key)}
         url_with_a_non_existing_product = reverse("single-product", kwargs={"pk": 5000})
 
         # ACT
-        request = self.client.put(
+        response = self.client.put(
             url_with_a_non_existing_product,
             data=self.encoded_data,
             content_type=self.content_type,
+            **header
         )
-        force_authenticate(request=request, user=self.merchant.user, token=self.token)
-        view = AccountDetail.as_view()
-        response = view(request)
 
         # ASSERT
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_view_update_correctly_product(self):
         # ARRANGE
-        self.client.force_login(user=self.merchant.user)
+        header = {"HTTP_AUTHORIZATION": "Token {}".format(self.token.key)}
         expected_result = {"id": 1, "name": "updated or created Product name"}
 
         # ACT
         response = self.client.put(
-            self.url, data=self.encoded_data, content_type=self.content_type
+            self.url, data=self.encoded_data, content_type=self.content_type, **header
         )
 
         # ASSERT
@@ -120,12 +118,15 @@ class ProductViewSetTestCase(TestCase):
 
     def test_view_create_correctly_product(self):
         # ARRANGE
-        self.client.force_login(user=self.merchant.user)
+        header = {"HTTP_AUTHORIZATION": "Token {}".format(self.token.key)}
         expected_name = "updated or created Product name"
 
         # ACT
         response = self.client.post(
-            self.url_post, data=self.encoded_data, content_type=self.content_type
+            self.url_post,
+            data=self.encoded_data,
+            content_type=self.content_type,
+            **header
         )
 
         # ASSERT
@@ -134,7 +135,7 @@ class ProductViewSetTestCase(TestCase):
 
     def test_view_deleting_a_product_deletes_all_associated_listings(self):
         # ARRANGE
-        self.client.force_login(user=self.merchant.user)
+        header = {"HTTP_AUTHORIZATION": "Token {}".format(self.token.key)}
         # Create a product and 2 associated listings
         product_to_delete = Product(pk=2, name="product to delete")
         product_to_delete.save()
@@ -150,9 +151,9 @@ class ProductViewSetTestCase(TestCase):
         url_listing_2 = reverse("single-listing", kwargs={"pk": 2})
 
         # ACT
-        delete_response = self.client.delete(url_delete)
-        get_listing_1 = self.client.get(url_listing_1)
-        get_listing_2 = self.client.get(url_listing_2)
+        delete_response = self.client.delete(url_delete, **header)
+        get_listing_1 = self.client.get(url_listing_1, **header)
+        get_listing_2 = self.client.get(url_listing_2, **header)
 
         # ASSERT
         self.assertEqual(delete_response.status_code, status.HTTP_204_NO_CONTENT)
@@ -193,6 +194,9 @@ class ListingViewSetTestCase(TestCase):
         cls.user.save()
         cls.merchant = Merchant.objects.create(user=cls.user)
         cls.merchant.save()
+        # Fetch Token from this merchant
+        cls.token = Token(user=cls.user)
+        cls.token.save()
 
         # URLs setup
         cls.url = reverse("single-listing", kwargs={"pk": cls.listing.pk})
@@ -224,10 +228,10 @@ class ListingViewSetTestCase(TestCase):
     def test_view_get_should_return_404_if_listing_not_created(self):
         # ARRANGE
         url_get_non_existing_listing = reverse("single-listing", kwargs={"pk": 100})
-        self.client.force_login(user=self.merchant.user)
+        header = {"HTTP_AUTHORIZATION": "Token {}".format(self.token.key)}
 
         # ACT
-        response = self.client.get(url_get_non_existing_listing)
+        response = self.client.get(url_get_non_existing_listing, **header)
 
         # ASSERT
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
@@ -242,10 +246,10 @@ class ListingViewSetTestCase(TestCase):
             "price": "990.00",
             "quantity": 120,
         }
-        self.client.force_login(user=self.merchant.user)
+        header = {"HTTP_AUTHORIZATION": "Token {}".format(self.token.key)}
 
         # ACT
-        response = self.client.get(self.url)
+        response = self.client.get(self.url, **header)
 
         # ASSERT
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -266,7 +270,7 @@ class ListingViewSetTestCase(TestCase):
 
     def test_view_raises_404_if_update_a_non_existing_listing(self):
         # ARRANGE
-        self.client.force_login(user=self.merchant.user)
+        header = {"HTTP_AUTHORIZATION": "Token {}".format(self.token.key)}
         url_with_a_non_existing_listing = reverse("single-listing", kwargs={"pk": 5000})
 
         # ACT
@@ -274,6 +278,7 @@ class ListingViewSetTestCase(TestCase):
             url_with_a_non_existing_listing,
             data=self.encoded_data,
             content_type=self.content_type,
+            **header
         )
 
         # ASSERT
@@ -283,7 +288,7 @@ class ListingViewSetTestCase(TestCase):
         self,
     ):
         # ARRANGE
-        self.client.force_login(user=self.merchant.user)
+        header = {"HTTP_AUTHORIZATION": "Token {}".format(self.token.key)}
         Product(pk=2, name="product 2").save()
         data = {
             "product": 2,  # updating to None shouldn't work, we expect no value at all here
@@ -295,7 +300,7 @@ class ListingViewSetTestCase(TestCase):
 
         # ACT
         response = self.client.put(
-            self.url, data=encoded_data, content_type=content_type
+            self.url, data=encoded_data, content_type=content_type, **header
         )
 
         # ASSERT
@@ -303,7 +308,7 @@ class ListingViewSetTestCase(TestCase):
 
     def test_view_update_correctly_listing(self):
         # ARRANGE
-        self.client.force_login(user=self.merchant.user)
+        header = {"HTTP_AUTHORIZATION": "Token {}".format(self.token.key)}
         expected_result = {
             "id": 9,
             "product": 1,
@@ -315,7 +320,7 @@ class ListingViewSetTestCase(TestCase):
 
         # ACT
         response = self.client.put(
-            self.url, data=self.encoded_data, content_type=self.content_type
+            self.url, data=self.encoded_data, content_type=self.content_type, **header
         )
 
         # ASSERT
@@ -324,7 +329,7 @@ class ListingViewSetTestCase(TestCase):
 
     def test_view_attach_product_to_listing(self):
         # ARRANGE
-        self.client.force_login(user=self.merchant.user)
+        header = {"HTTP_AUTHORIZATION": "Token {}".format(self.token.key)}
         Product(pk=2, name="product 2").save()
         data = {"product": 2}
         encoded_data = json.dumps(data)
@@ -341,7 +346,7 @@ class ListingViewSetTestCase(TestCase):
 
         # ACT
         response = self.client.put(
-            self.url_attach, data=encoded_data, content_type=content_type
+            self.url_attach, data=encoded_data, content_type=content_type, **header
         )
 
         # ASSERT
@@ -363,7 +368,7 @@ class ListingViewSetTestCase(TestCase):
 
     def test_view_create_correctly_listing(self):
         # ARRANGE
-        self.client.force_login(user=self.merchant.user)
+        header = {"HTTP_AUTHORIZATION": "Token {}".format(self.token.key)}
         expected_result = {
             "product": None,
             "title": "iPhone X 64Gb - unlocked",
@@ -374,7 +379,10 @@ class ListingViewSetTestCase(TestCase):
 
         # ACT
         response = self.client.post(
-            self.url_create, data=self.encoded_data, content_type=self.content_type
+            self.url_create,
+            data=self.encoded_data,
+            content_type=self.content_type,
+            **header
         )
 
         # ASSERT
@@ -424,6 +432,9 @@ class OrderAPIViewTestCase(TestCase):
         cls.user.save()
         cls.merchant = Merchant.objects.create(user=cls.user)
         cls.merchant.save()
+        # Fetch Token from this merchant
+        cls.token = Token(user=cls.user)
+        cls.token.save()
 
         # URLs setup
         cls.url = reverse("orders")
@@ -441,13 +452,13 @@ class OrderAPIViewTestCase(TestCase):
 
     def test_view_cannot_create_order_if_listing_doesnt_exist(self):
         # ARRANGE
-        self.client.force_login(user=self.merchant.user)
+        header = {"HTTP_AUTHORIZATION": "Token {}".format(self.token.key)}
         data = {"listings": 13, "quantities": 1}
         encoded_data = json.dumps(data)
 
         # ACT
         response = self.client.post(
-            self.url, data=encoded_data, content_type=self.content_type
+            self.url, data=encoded_data, content_type=self.content_type, **header
         )
 
         # ASSERT
@@ -455,13 +466,13 @@ class OrderAPIViewTestCase(TestCase):
 
     def test_view_cannot_create_order_if_quantity_is_not_sufficient(self):
         # ARRANGE
-        self.client.force_login(user=self.merchant.user)
+        header = {"HTTP_AUTHORIZATION": "Token {}".format(self.token.key)}
         data = {"listings": 2, "quantities": 3}
         encoded_data = json.dumps(data)
 
         # ACT
         response = self.client.post(
-            self.url, data=encoded_data, content_type=self.content_type
+            self.url, data=encoded_data, content_type=self.content_type, **header
         )
 
         # ASSERT
@@ -469,7 +480,7 @@ class OrderAPIViewTestCase(TestCase):
 
     def test_view_create_order_and_orderlines_properly(self):
         # ARRANGE
-        self.client.force_login(user=self.merchant.user)
+        header = {"HTTP_AUTHORIZATION": "Token {}".format(self.token.key)}
         data = {
             "listings": "1,2",
             "quantities": "15,1",
@@ -491,7 +502,7 @@ class OrderAPIViewTestCase(TestCase):
 
         # ACT
         response = self.client.post(
-            self.url, data=encoded_data, content_type=self.content_type
+            self.url, data=encoded_data, content_type=self.content_type, **header
         )
 
         # ASSERT
@@ -519,8 +530,7 @@ class OrderAPIViewTestCase(TestCase):
 
     def test_view_get_returns_the_correct_object(self):
         # ARRANGE
-        self.client.force_login(user=self.merchant.user)
-
+        header = {"HTTP_AUTHORIZATION": "Token {}".format(self.token.key)}
         # Create a 2nd merchant
         user = User(username="Augustin", password="fake-password")
         user.save()
@@ -556,7 +566,7 @@ class OrderAPIViewTestCase(TestCase):
         ]
 
         # ACT
-        response = self.client.get(self.url)
+        response = self.client.get(self.url, **header)
 
         # ASSERT
         self.assertEqual(response.status_code, status.HTTP_200_OK)
