@@ -2,7 +2,6 @@ import json
 from collections import OrderedDict
 
 from django.contrib.auth.models import User
-from rest_framework.test import force_authenticate
 from rest_framework.authtoken.models import Token
 
 

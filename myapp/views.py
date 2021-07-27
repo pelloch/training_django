@@ -1,8 +1,11 @@
 from django.http import HttpResponse
-from rest_framework import permissions, status, authentication
+from rest_framework import permissions, status
 from rest_framework import viewsets
 from rest_framework.generics import get_object_or_404, ListCreateAPIView
+from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.response import Response
+from rest_framework.authtoken.models import Token
+
 
 from myapp.models import Product, Listing, Order, Merchant, OrderLine
 from myapp.serializers import (
@@ -16,13 +19,25 @@ from myapp.serializers import (
 
 # Create your views here.
 def index(request):
-    return HttpResponse("Hello, my friend. You're at the MyApp index.")
+    token = Token(user=request.user)  # no token here if user is not logged
+    header = {"Authorization": "Token {}".format(token.key)}
+    return HttpResponse(
+        "Hello, my friend. You're at the MyApp index.\nYou can see your orders here : ",
+        headers=header,
+    )
+
+
+class MyHTMLRenderer(TemplateHTMLRenderer):
+    def get_template_context(self, *args, **kwargs):
+        context = super().get_template_context(*args, **kwargs)
+        if isinstance(context, list):
+            context = {"items": context}
+        return context
 
 
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
-    authentication_classes = [authentication.TokenAuthentication]
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
 
@@ -76,6 +91,8 @@ class OrderAPIView(ListCreateAPIView):
     # Define a POST method to create an order with at least one orderline on existing listing
     serializer_class = OrderSerializer
     permission_classes = [permissions.IsAuthenticated]
+    renderer_classes = [MyHTMLRenderer]
+    template_name = "myapp/orders.html"
 
     def get_queryset(self):
         """
@@ -83,7 +100,8 @@ class OrderAPIView(ListCreateAPIView):
         for the currently authenticated merchant.
         """
         merchant = get_object_or_404(Merchant.objects, user=self.request.user)
-        return Order.objects.filter(merchant=merchant)
+        orders = Order.objects.filter(merchant=merchant)
+        return orders
 
     def create(self, request, *args, **kwargs):
         # Serialize the request.data

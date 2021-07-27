@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Orders list of merchant #{orders.merchant_id}</title>
+</head>
+
+{% if orders %}
+
+<body>
+    {% for order in orders %}
+        <li><{order.id} created on {order.creation_date}</li>
+    {% endfor %}
+{% else %}
+    <p>You have no registered order yet.</p>
+{% endif %}
+</body>
+</html>
